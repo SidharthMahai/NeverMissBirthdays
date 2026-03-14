@@ -147,6 +147,11 @@ button.ghost {
 button.danger {
   background: #ffecef;
   color: #ab3555;
+  border: 1px solid #f5bfd0;
+}
+
+button.danger:hover {
+  box-shadow: 0 10px 20px rgba(171, 53, 85, 0.18);
 }
 
 .topbar {

@@ -66,6 +66,17 @@ export const birthdayStore = {
     await request<{ ok: true }>({ action: 'delete', userId, id });
   },
 
+  async deleteAccount(userId: string) {
+    const data = await request<{
+      ok: true;
+      summary?: { deletedBirthdays?: number; deletedSettings?: number };
+    }>({
+      action: 'account_delete',
+      userId,
+    });
+    return data.summary ?? { deletedBirthdays: 0, deletedSettings: 0 };
+  },
+
   async getReminderSettings(userId: string) {
     const data = await request<{ settings: ReminderSettings }>({ action: 'settings_get', userId });
     const settings = data.settings;

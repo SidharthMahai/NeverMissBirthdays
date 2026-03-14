@@ -37,15 +37,18 @@ export const Dashboard = ({ accessId, onChangeUser }: DashboardProps) => {
   const [notice, setNotice] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const [settings, setSettings] = useState<ReminderSettings | null>(null);
   const [settingsLoading, setSettingsLoading] = useState(true);
+  const [settingsLoadFailed, setSettingsLoadFailed] = useState(false);
   const [settingsSaving, setSettingsSaving] = useState(false);
   const [settingsModalOpen, setSettingsModalOpen] = useState(false);
+  const [accountDeleting, setAccountDeleting] = useState(false);
 
   const upcomingPreview = useMemo(() => upcoming.slice(0, 3), [upcoming]);
   const effectiveSettings: ReminderSettings = settings ?? {
     userId: accessId,
     reminderEnabled: false,
   };
-  const actionsBusy = isSaving || deletingId !== null;
+  const settingsLoaded = !settingsLoading && settings !== null && !settingsLoadFailed;
+  const actionsBusy = isSaving || deletingId !== null || accountDeleting;
 
   useEffect(() => {
     if (!notice) {
@@ -59,9 +62,11 @@ export const Dashboard = ({ accessId, onChangeUser }: DashboardProps) => {
     const loadSettings = async () => {
       try {
         setSettingsLoading(true);
+        setSettingsLoadFailed(false);
         const next = await birthdayStore.getReminderSettings(accessId);
         setSettings(next);
       } catch (err) {
+        setSettingsLoadFailed(true);
         const message = err instanceof Error ? err.message : 'Could not load reminder settings.';
         setNotice({ type: 'error', message });
       } finally {
@@ -98,6 +103,36 @@ export const Dashboard = ({ accessId, onChangeUser }: DashboardProps) => {
     }
   };
 
+  const handleAccountDelete = async () => {
+    const firstConfirm = window.confirm(
+      'Delete this account and all birthdays/reminder settings tied to this Access ID?',
+    );
+    if (!firstConfirm) {
+      return;
+    }
+
+    const secondConfirm = window.prompt('Type DELETE to confirm permanent account deletion:');
+    if (secondConfirm !== 'DELETE') {
+      setNotice({ type: 'error', message: 'Account deletion cancelled.' });
+      return;
+    }
+
+    try {
+      setAccountDeleting(true);
+      const summary = await birthdayStore.deleteAccount(accessId);
+      setNotice({
+        type: 'success',
+        message: `Account deleted. Removed ${summary.deletedBirthdays ?? 0} birthdays and ${summary.deletedSettings ?? 0} reminder setting rows.`,
+      });
+      window.setTimeout(() => onChangeUser(), 700);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Could not delete this account.';
+      setNotice({ type: 'error', message });
+    } finally {
+      setAccountDeleting(false);
+    }
+  };
+
   return (
     <div className="app-shell">
       <header className="topbar">
@@ -112,18 +147,21 @@ export const Dashboard = ({ accessId, onChangeUser }: DashboardProps) => {
         <div className="topbar-actions">
           <span className="access-pill">ID: {accessId}</span>
           <button type="button" className="ghost" onClick={() => setSettingsModalOpen(true)}>
-            {effectiveSettings.reminderEnabled ? 'Email Reminder Settings' : 'Enable Email Reminders'}
+            Email Reminder Settings
           </button>
           <button type="button" className="ghost" onClick={onChangeUser}>
             Switch ID
           </button>
-          <button type="button" onClick={openCreate} disabled={deletingId !== null}>
+          <button type="button" className="danger" onClick={() => void handleAccountDelete()} disabled={actionsBusy}>
+            {accountDeleting ? 'Deleting Account...' : 'Delete Account'}
+          </button>
+          <button type="button" onClick={openCreate} disabled={actionsBusy}>
             Add Birthday
           </button>
         </div>
       </header>
       {notice ? <div className={`toast ${notice.type}`}>{notice.message}</div> : null}
-      {!settingsLoading && !effectiveSettings.reminderEnabled ? (
+      {settingsLoaded && !effectiveSettings.reminderEnabled ? (
         <div className="empty-state reminder-banner">
           <h3>Email reminders are currently off</h3>
           <p>Enable reminders once and we’ll notify you for all birthdays in this Access ID.</p>
