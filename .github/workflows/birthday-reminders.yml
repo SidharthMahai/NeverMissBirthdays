@@ -11,9 +11,26 @@ jobs:
     steps:
       - name: Trigger Apps Script reminder run
         run: |
-          RESPONSE=$(curl -fsSL --post301 --post302 --post303 -X POST "$APPS_SCRIPT_URL" \
+          HEADERS_FILE=$(mktemp)
+          BODY_FILE=$(mktemp)
+          PAYLOAD="{\"action\":\"reminders_run\",\"cronKey\":\"$APPS_SCRIPT_CRON_KEY\",\"clientKey\":\"$APPS_SCRIPT_CLIENT_KEY\"}"
+
+          curl -sS -D "$HEADERS_FILE" -o "$BODY_FILE" -X POST "$APPS_SCRIPT_URL" \
             -H "Content-Type: application/json" \
-            -d "{\"action\":\"reminders_run\",\"cronKey\":\"$APPS_SCRIPT_CRON_KEY\",\"clientKey\":\"$APPS_SCRIPT_CLIENT_KEY\"}")
+            -d "$PAYLOAD"
+
+          STATUS=$(awk 'toupper($1) ~ /^HTTP\\// {code=$2} END {print code}' "$HEADERS_FILE")
+          if [ "$STATUS" = "301" ] || [ "$STATUS" = "302" ] || [ "$STATUS" = "303" ] || [ "$STATUS" = "307" ] || [ "$STATUS" = "308" ]; then
+            LOCATION=$(awk 'tolower($1)=="location:" {print $2}' "$HEADERS_FILE" | tr -d '\\r' | tail -1)
+            RESPONSE=$(curl -fsSL "$LOCATION")
+          elif [ "$STATUS" = "200" ]; then
+            RESPONSE=$(cat "$BODY_FILE")
+          else
+            echo "Unexpected HTTP status from Apps Script: $STATUS"
+            cat "$BODY_FILE"
+            exit 1
+          fi
+
           echo "$RESPONSE"
           echo "$RESPONSE" | grep -q '"ok":true'
         env:
