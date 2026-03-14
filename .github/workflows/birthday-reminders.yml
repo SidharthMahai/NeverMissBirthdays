@@ -11,26 +11,10 @@ jobs:
     steps:
       - name: Trigger Apps Script reminder run
         run: |
-          HEADERS_FILE=$(mktemp)
-          BODY_FILE=$(mktemp)
           PAYLOAD="{\"action\":\"reminders_run\",\"cronKey\":\"$APPS_SCRIPT_CRON_KEY\",\"clientKey\":\"$APPS_SCRIPT_CLIENT_KEY\"}"
-
-          curl -sS -D "$HEADERS_FILE" -o "$BODY_FILE" -X POST "$APPS_SCRIPT_URL" \
+          RESPONSE=$(curl -fsSL "$APPS_SCRIPT_URL" \
             -H "Content-Type: application/json" \
-            -d "$PAYLOAD"
-
-          STATUS=$(head -n 1 "$HEADERS_FILE" | sed -E 's/HTTP\\/[^ ]+ ([0-9]+).*/\\1/')
-          if [ "$STATUS" = "301" ] || [ "$STATUS" = "302" ] || [ "$STATUS" = "303" ] || [ "$STATUS" = "307" ] || [ "$STATUS" = "308" ]; then
-            LOCATION=$(grep -i '^location:' "$HEADERS_FILE" | tail -1 | sed -E 's/[Ll]ocation:[[:space:]]*//' | tr -d '\r')
-            RESPONSE=$(curl -fsSL "$LOCATION")
-          elif [ "$STATUS" = "200" ]; then
-            RESPONSE=$(cat "$BODY_FILE")
-          else
-            echo "Unexpected HTTP status from Apps Script: $STATUS"
-            cat "$BODY_FILE"
-            exit 1
-          fi
-
+            --data "$PAYLOAD")
           echo "$RESPONSE"
           echo "$RESPONSE" | grep -q '"ok":true'
         env:
