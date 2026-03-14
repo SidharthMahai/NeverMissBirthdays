@@ -11,9 +11,11 @@ jobs:
     steps:
       - name: Trigger Apps Script reminder run
         run: |
-          curl -sS -X POST "$APPS_SCRIPT_URL" \
+          RESPONSE=$(curl -fsSL -X POST "$APPS_SCRIPT_URL" \
             -H "Content-Type: application/json" \
-            -d "{\"action\":\"reminders_run\",\"cronKey\":\"$APPS_SCRIPT_CRON_KEY\",\"clientKey\":\"$APPS_SCRIPT_CLIENT_KEY\"}"
+            -d "{\"action\":\"reminders_run\",\"cronKey\":\"$APPS_SCRIPT_CRON_KEY\",\"clientKey\":\"$APPS_SCRIPT_CLIENT_KEY\"}")
+          echo "$RESPONSE"
+          echo "$RESPONSE" | grep -q '"ok":true'
         env:
           APPS_SCRIPT_URL: ${{ secrets.APPS_SCRIPT_URL }}
           APPS_SCRIPT_CRON_KEY: ${{ secrets.APPS_SCRIPT_CRON_KEY }}
