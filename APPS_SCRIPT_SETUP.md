@@ -20,20 +20,21 @@
 - Who has access: `Anyone`.
 - Copy the deployment URL.
 
-## 3) Frontend env (`.env`)
-
-Create `.env` from `.env.example` and set:
-
-- `VITE_APPS_SCRIPT_URL=<deployment url>`
-- `VITE_APPS_SCRIPT_CLIENT_KEY=<same CLIENT_KEY script property>` (optional)
-
-## 4) Run
-
-- Frontend: `npm run dev`
-
-## 5) Vercel env vars (Production)
+## 3) Vercel env vars
 
 Set these in Vercel Project Settings -> Environment Variables:
 
-- `VITE_APPS_SCRIPT_URL` = your Apps Script web app URL
-- `VITE_APPS_SCRIPT_CLIENT_KEY` = same as Apps Script `CLIENT_KEY` (optional)
+- `APPS_SCRIPT_URL=<deployment url>`
+- `APPS_SCRIPT_CLIENT_KEY=<same as HARDCODED_CLIENT_KEY in Code.gs>`
+
+## 4) Run local
+
+For local frontend + local proxy testing:
+
+- Set `.env` from `.env.example`:
+  - `APPS_SCRIPT_URL=...`
+  - `APPS_SCRIPT_CLIENT_KEY=...`
+- Frontend: `npm run dev`
+- Proxy route exists at `/api/birthdays` (Vercel function in `api/birthdays.mjs`)
+
+The browser now calls `/api/birthdays` (same-origin), and that function calls Apps Script server-to-server to avoid CORS.
