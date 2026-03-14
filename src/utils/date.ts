@@ -33,7 +33,10 @@ export const getRecordMonthDay = (record: BirthdayRecord) => {
     if (!record.dateIso) {
       return null;
     }
-    const parsed = new Date(`${record.dateIso}T00:00:00`);
+    const isoLike = /^\\d{4}-\\d{2}-\\d{2}$/.test(record.dateIso);
+    const parsed = isoLike
+      ? new Date(`${record.dateIso}T00:00:00`)
+      : new Date(record.dateIso);
     if (Number.isNaN(parsed.getTime())) {
       return null;
     }
@@ -62,7 +65,8 @@ export const formatBirthday = (record: BirthdayRecord) => {
   const monthName = MONTH_NAMES[monthDay.month - 1];
 
   if (record.birthdayType === 'full' && record.dateIso) {
-    const year = new Date(`${record.dateIso}T00:00:00`).getFullYear();
+    const isoLike = /^\\d{4}-\\d{2}-\\d{2}$/.test(record.dateIso);
+    const year = new Date(isoLike ? `${record.dateIso}T00:00:00` : record.dateIso).getFullYear();
     return `${monthName} ${monthDay.day}, ${year}`;
   }
 

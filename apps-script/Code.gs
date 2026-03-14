@@ -88,7 +88,7 @@ function listRecords(sheet, userHash, userId) {
       name: String(r[2] || ''),
       relation: String(r[3] || 'other'),
       birthdayType: String(r[4] || 'monthDay'),
-      dateIso: r[5] ? String(r[5]) : undefined,
+      dateIso: normalizeDateIso(r[5]),
       month: r[6] ? Number(r[6]) : undefined,
       day: r[7] ? Number(r[7]) : undefined,
       email: r[8] ? String(r[8]) : undefined,
@@ -109,7 +109,7 @@ function createRecord(sheet, userHash, userId, input) {
     name: String(input.name || '').trim(),
     relation: String(input.relation || 'other'),
     birthdayType: String(input.birthdayType || 'monthDay'),
-    dateIso: input.dateIso ? String(input.dateIso) : undefined,
+    dateIso: normalizeDateIso(input.dateIso),
     month: input.month != null ? Number(input.month) : undefined,
     day: input.day != null ? Number(input.day) : undefined,
     email: input.email ? String(input.email) : undefined,
@@ -144,13 +144,14 @@ function updateRecord(sheet, userHash, id, input) {
 
   var r = found.row;
   var birthdayType = String(input.birthdayType || r[4] || 'monthDay');
+  var normalizedDate = normalizeDateIso(input.dateIso || r[5]);
   var next = [
     id,
     userHash,
     String(input.name || r[2] || '').trim(),
     String(input.relation || r[3] || 'other'),
     birthdayType,
-    birthdayType === 'full' ? String(input.dateIso || '') : '',
+    birthdayType === 'full' ? normalizedDate || '' : '',
     birthdayType === 'monthDay' ? Number(input.month || '') || '' : '',
     birthdayType === 'monthDay' ? Number(input.day || '') || '' : '',
     input.email ? String(input.email) : '',
@@ -160,6 +161,25 @@ function updateRecord(sheet, userHash, id, input) {
   ];
 
   sheet.getRange(found.index, 1, 1, 12).setValues([next]);
+}
+
+function normalizeDateIso(value) {
+  if (!value) return undefined;
+
+  if (Object.prototype.toString.call(value) === '[object Date]' && !isNaN(value)) {
+    return Utilities.formatDate(value, 'Etc/UTC', 'yyyy-MM-dd');
+  }
+
+  var raw = String(value).trim();
+  if (!raw) return undefined;
+
+  if (/^\\d{4}-\\d{2}-\\d{2}$/.test(raw)) {
+    return raw;
+  }
+
+  var parsed = new Date(raw);
+  if (isNaN(parsed)) return undefined;
+  return Utilities.formatDate(parsed, 'Etc/UTC', 'yyyy-MM-dd');
 }
 
 function deleteRecord(sheet, userHash, id) {

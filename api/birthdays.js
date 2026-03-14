@@ -1,5 +1,8 @@
-const APPS_SCRIPT_URL = process.env.APPS_SCRIPT_URL;
-const APPS_SCRIPT_CLIENT_KEY = process.env.APPS_SCRIPT_CLIENT_KEY;
+const APPS_SCRIPT_URL =
+  process.env.APPS_SCRIPT_URL ||
+  'https://script.google.com/macros/s/AKfycbzL0lKRpAGuWQNwKoqzWddnmgMOkb2AiRcAL-0owZxzd2tmtO9ow75-G2tFao_hOwG5_A/exec';
+const APPS_SCRIPT_CLIENT_KEY =
+  process.env.APPS_SCRIPT_CLIENT_KEY || '17088669416447bf8ceecbb1521bbc8de2a73ce4ba60680b';
 
 const json = (res, status, payload) => {
   res.status(status).setHeader('Content-Type', 'application/json').send(JSON.stringify(payload));
@@ -15,10 +18,6 @@ export default async function handler(req, res) {
 
   if (req.method !== 'POST') {
     return json(res, 405, { error: 'Method not allowed' });
-  }
-
-  if (!APPS_SCRIPT_URL) {
-    return json(res, 500, { error: 'Server misconfigured: APPS_SCRIPT_URL missing' });
   }
 
   const { action, userId, id, input } = req.body || {};
