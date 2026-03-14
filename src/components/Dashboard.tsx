@@ -1,10 +1,12 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useBirthdays } from '../hooks/useBirthdays';
-import { BirthdayRecord } from '../types/birthday';
+import { birthdayStore } from '../services/birthdayStore';
+import { BirthdayRecord, ReminderSettings } from '../types/birthday';
 import { daysUntilNextBirthday, formatBirthday } from '../utils/date';
 import { BirthdayFormModal } from './BirthdayFormModal';
 import { BirthdayList } from './BirthdayList';
 import { Filters } from './Filters';
+import { ReminderSettingsModal } from './ReminderSettingsModal';
 import { StatCard } from './StatCard';
 
 interface DashboardProps {
@@ -30,8 +32,45 @@ export const Dashboard = ({ accessId, onChangeUser }: DashboardProps) => {
 
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<BirthdayRecord | undefined>();
+  const [isSaving, setIsSaving] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [notice, setNotice] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const [settings, setSettings] = useState<ReminderSettings | null>(null);
+  const [settingsLoading, setSettingsLoading] = useState(true);
+  const [settingsSaving, setSettingsSaving] = useState(false);
+  const [settingsModalOpen, setSettingsModalOpen] = useState(false);
 
   const upcomingPreview = useMemo(() => upcoming.slice(0, 3), [upcoming]);
+  const effectiveSettings: ReminderSettings = settings ?? {
+    userId: accessId,
+    reminderEnabled: false,
+  };
+  const actionsBusy = isSaving || deletingId !== null;
+
+  useEffect(() => {
+    if (!notice) {
+      return;
+    }
+    const timer = window.setTimeout(() => setNotice(null), 3000);
+    return () => window.clearTimeout(timer);
+  }, [notice]);
+
+  useEffect(() => {
+    const loadSettings = async () => {
+      try {
+        setSettingsLoading(true);
+        const next = await birthdayStore.getReminderSettings(accessId);
+        setSettings(next);
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'Could not load reminder settings.';
+        setNotice({ type: 'error', message });
+      } finally {
+        setSettingsLoading(false);
+      }
+    };
+
+    void loadSettings();
+  }, [accessId]);
 
   const openCreate = () => {
     setEditing(undefined);
@@ -46,7 +85,16 @@ export const Dashboard = ({ accessId, onChangeUser }: DashboardProps) => {
   const handleDelete = async (record: BirthdayRecord) => {
     const confirmed = window.confirm(`Delete ${record.name}'s birthday?`);
     if (confirmed) {
-      await deleteBirthday(record.id);
+      try {
+        setDeletingId(record.id);
+        await deleteBirthday(record.id);
+        setNotice({ type: 'success', message: `${record.name}'s birthday was deleted.` });
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'Delete failed.';
+        setNotice({ type: 'error', message });
+      } finally {
+        setDeletingId(null);
+      }
     }
   };
 
@@ -63,14 +111,27 @@ export const Dashboard = ({ accessId, onChangeUser }: DashboardProps) => {
         </div>
         <div className="topbar-actions">
           <span className="access-pill">ID: {accessId}</span>
+          <button type="button" className="ghost" onClick={() => setSettingsModalOpen(true)}>
+            {effectiveSettings.reminderEnabled ? 'Email Reminder Settings' : 'Enable Email Reminders'}
+          </button>
           <button type="button" className="ghost" onClick={onChangeUser}>
             Switch ID
           </button>
-          <button type="button" onClick={openCreate}>
+          <button type="button" onClick={openCreate} disabled={deletingId !== null}>
             Add Birthday
           </button>
         </div>
       </header>
+      {notice ? <div className={`toast ${notice.type}`}>{notice.message}</div> : null}
+      {!settingsLoading && !effectiveSettings.reminderEnabled ? (
+        <div className="empty-state reminder-banner">
+          <h3>Email reminders are currently off</h3>
+          <p>Enable reminders once and we’ll notify you for all birthdays in this Access ID.</p>
+          <button type="button" className="ghost" onClick={() => setSettingsModalOpen(true)}>
+            Enable Email Reminders
+          </button>
+        </div>
+      ) : null}
 
       <section className="stat-grid">
         <StatCard
@@ -157,7 +218,13 @@ export const Dashboard = ({ accessId, onChangeUser }: DashboardProps) => {
           </div>
         ) : null}
         {!loading && !error ? (
-          <BirthdayList records={filteredRecords} onEdit={openEdit} onDelete={(record) => void handleDelete(record)} />
+          <BirthdayList
+            records={filteredRecords}
+            onEdit={openEdit}
+            onDelete={(record) => void handleDelete(record)}
+            busyId={deletingId}
+            actionsDisabled={actionsBusy}
+          />
         ) : null}
       </section>
 
@@ -166,10 +233,48 @@ export const Dashboard = ({ accessId, onChangeUser }: DashboardProps) => {
           record={editing}
           onClose={() => setModalOpen(false)}
           onSave={async (input) => {
-            if (editing) {
-              await updateBirthday(editing.id, input);
-            } else {
-              await createBirthday(input);
+            try {
+              setIsSaving(true);
+              if (editing) {
+                await updateBirthday(editing.id, input);
+                setNotice({ type: 'success', message: `${input.name} was updated.` });
+              } else {
+                await createBirthday(input);
+                setNotice({ type: 'success', message: `${input.name} was added.` });
+              }
+            } catch (err) {
+              const message = err instanceof Error ? err.message : 'Save failed.';
+              setNotice({ type: 'error', message });
+              throw err;
+            } finally {
+              setIsSaving(false);
+            }
+          }}
+          isSubmitting={isSaving}
+        />
+      ) : null}
+      {settingsModalOpen ? (
+        <ReminderSettingsModal
+          initial={effectiveSettings}
+          saving={settingsSaving}
+          onClose={() => setSettingsModalOpen(false)}
+          onSave={async (next) => {
+            try {
+              setSettingsSaving(true);
+              const updated = await birthdayStore.updateReminderSettings(accessId, next);
+              setSettings(updated);
+              setNotice({
+                type: 'success',
+                message: updated.reminderEnabled
+                  ? `Reminders enabled for ${updated.reminderEmail}.`
+                  : 'Reminders disabled for this account.',
+              });
+            } catch (err) {
+              const message = err instanceof Error ? err.message : 'Could not save reminder settings.';
+              setNotice({ type: 'error', message });
+              throw err;
+            } finally {
+              setSettingsSaving(false);
             }
           }}
         />

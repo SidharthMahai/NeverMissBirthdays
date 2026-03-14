@@ -33,3 +33,10 @@ export interface BirthdayFilters {
   relation: Relation | 'all';
   month: number | 'all';
 }
+
+export interface ReminderSettings {
+  userId: string;
+  reminderEnabled: boolean;
+  reminderEmail?: string;
+  updatedAt?: string;
+}

@@ -5,13 +5,14 @@ interface BirthdayFormModalProps {
   record?: BirthdayRecord;
   onClose: () => void;
   onSave: (input: BirthdayInput) => Promise<void> | void;
+  isSubmitting?: boolean;
 }
 
 const relationOptions: Relation[] = ['friend', 'family', 'colleague', 'other'];
 
 const twoDigit = (n: number) => n.toString().padStart(2, '0');
 
-export const BirthdayFormModal = ({ record, onClose, onSave }: BirthdayFormModalProps) => {
+export const BirthdayFormModal = ({ record, onClose, onSave, isSubmitting = false }: BirthdayFormModalProps) => {
   const initialType = record?.birthdayType ?? 'monthDay';
   const [birthdayType, setBirthdayType] = useState<BirthdayInput['birthdayType']>(initialType);
   const [name, setName] = useState(record?.name ?? '');
@@ -19,7 +20,6 @@ export const BirthdayFormModal = ({ record, onClose, onSave }: BirthdayFormModal
   const [dateIso, setDateIso] = useState(record?.dateIso ?? '');
   const [month, setMonth] = useState(record?.month ?? 1);
   const [day, setDay] = useState(record?.day ?? 1);
-  const [email, setEmail] = useState(record?.email ?? '');
   const [notes, setNotes] = useState(record?.notes ?? '');
   const [submitError, setSubmitError] = useState('');
 
@@ -27,6 +27,9 @@ export const BirthdayFormModal = ({ record, onClose, onSave }: BirthdayFormModal
 
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
+    if (isSubmitting) {
+      return;
+    }
     if (!name.trim()) {
       return;
     }
@@ -35,7 +38,6 @@ export const BirthdayFormModal = ({ record, onClose, onSave }: BirthdayFormModal
       name,
       relation,
       birthdayType,
-      email,
       notes,
     };
 
@@ -64,19 +66,24 @@ export const BirthdayFormModal = ({ record, onClose, onSave }: BirthdayFormModal
       <form className="modal-card" onSubmit={handleSubmit}>
         <div className="modal-header">
           <h3>{record ? 'Edit Birthday' : 'Add Birthday'}</h3>
-          <button type="button" className="ghost" onClick={onClose}>
+          <button type="button" className="ghost" onClick={onClose} disabled={isSubmitting}>
             Close
           </button>
         </div>
 
         <label>
           Name
-          <input value={name} onChange={(event) => setName(event.target.value)} placeholder="Jordan Lee" />
+          <input
+            value={name}
+            onChange={(event) => setName(event.target.value)}
+            placeholder="Jordan Lee"
+            disabled={isSubmitting}
+          />
         </label>
 
         <label>
           Relation
-          <select value={relation} onChange={(event) => setRelation(event.target.value as Relation)}>
+          <select value={relation} onChange={(event) => setRelation(event.target.value as Relation)} disabled={isSubmitting}>
             {relationOptions.map((item) => (
               <option key={item} value={item}>
                 {item[0].toUpperCase() + item.slice(1)}
@@ -93,11 +100,17 @@ export const BirthdayFormModal = ({ record, onClose, onSave }: BirthdayFormModal
                 type="radio"
                 checked={birthdayType === 'monthDay'}
                 onChange={() => setBirthdayType('monthDay')}
+                disabled={isSubmitting}
               />
               Month + Day only
             </label>
             <label>
-              <input type="radio" checked={birthdayType === 'full'} onChange={() => setBirthdayType('full')} />
+              <input
+                type="radio"
+                checked={birthdayType === 'full'}
+                onChange={() => setBirthdayType('full')}
+                disabled={isSubmitting}
+              />
               Full date (year known)
             </label>
           </div>
@@ -106,7 +119,12 @@ export const BirthdayFormModal = ({ record, onClose, onSave }: BirthdayFormModal
         {birthdayType === 'full' ? (
           <label>
             Date of birth
-            <input type="date" value={dateIso} onChange={(event) => setDateIso(event.target.value)} />
+            <input
+              type="date"
+              value={dateIso}
+              onChange={(event) => setDateIso(event.target.value)}
+              disabled={isSubmitting}
+            />
           </label>
         ) : (
           <div className="date-grid">
@@ -119,6 +137,7 @@ export const BirthdayFormModal = ({ record, onClose, onSave }: BirthdayFormModal
                   setMonth(next);
                   setDay((current) => Math.min(current, new Date(2024, next, 0).getDate()));
                 }}
+                disabled={isSubmitting}
               >
                 {Array.from({ length: 12 }).map((_, index) => (
                   <option key={index + 1} value={index + 1}>
@@ -129,7 +148,11 @@ export const BirthdayFormModal = ({ record, onClose, onSave }: BirthdayFormModal
             </label>
             <label>
               Day
-              <select value={Math.min(day, maxDay)} onChange={(event) => setDay(Number(event.target.value))}>
+              <select
+                value={Math.min(day, maxDay)}
+                onChange={(event) => setDay(Number(event.target.value))}
+                disabled={isSubmitting}
+              >
                 {Array.from({ length: maxDay }).map((_, index) => (
                   <option key={index + 1} value={index + 1}>
                     {twoDigit(index + 1)}
@@ -141,28 +164,22 @@ export const BirthdayFormModal = ({ record, onClose, onSave }: BirthdayFormModal
         )}
 
         <label>
-          Email (optional)
-          <input
-            type="email"
-            placeholder="person@example.com"
-            value={email}
-            onChange={(event) => setEmail(event.target.value)}
-          />
-        </label>
-
-        <label>
           Notes (optional)
           <textarea
             rows={3}
             placeholder="Gift ideas, favorite cake, panic backup plan..."
             value={notes}
             onChange={(event) => setNotes(event.target.value)}
+            disabled={isSubmitting}
           />
         </label>
 
         <div className="actions-row">
-          <button type="submit">{record ? 'Save changes' : 'Add birthday'}</button>
+          <button type="submit" disabled={isSubmitting}>
+            {isSubmitting ? 'Saving...' : record ? 'Save changes' : 'Add birthday'}
+          </button>
         </div>
+        {isSubmitting ? <small className="saving-hint">Saving birthday details...</small> : null}
         {submitError ? <small>{submitError}</small> : null}
       </form>
     </div>

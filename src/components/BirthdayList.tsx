@@ -5,9 +5,17 @@ interface BirthdayListProps {
   records: BirthdayRecord[];
   onEdit: (record: BirthdayRecord) => void;
   onDelete: (record: BirthdayRecord) => void;
+  busyId?: string | null;
+  actionsDisabled?: boolean;
 }
 
-export const BirthdayList = ({ records, onEdit, onDelete }: BirthdayListProps) => {
+export const BirthdayList = ({
+  records,
+  onEdit,
+  onDelete,
+  busyId = null,
+  actionsDisabled = false,
+}: BirthdayListProps) => {
   if (records.length === 0) {
     return (
       <div className="empty-state">
@@ -44,11 +52,21 @@ export const BirthdayList = ({ records, onEdit, onDelete }: BirthdayListProps) =
             <div className="row-meta">
               <strong>{dueLabel}</strong>
               <div>
-                <button type="button" className="ghost" onClick={() => onEdit(record)}>
+                <button
+                  type="button"
+                  className="ghost"
+                  onClick={() => onEdit(record)}
+                  disabled={actionsDisabled}
+                >
                   Edit
                 </button>
-                <button type="button" className="danger" onClick={() => onDelete(record)}>
-                  Delete
+                <button
+                  type="button"
+                  className="danger"
+                  onClick={() => onDelete(record)}
+                  disabled={actionsDisabled}
+                >
+                  {busyId === record.id ? 'Deleting...' : 'Delete'}
                 </button>
               </div>
             </div>

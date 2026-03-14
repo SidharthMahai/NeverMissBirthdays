@@ -1,0 +1,20 @@
+name: Birthday Reminders
+
+on:
+  schedule:
+    - cron: '7 * * * *'
+  workflow_dispatch:
+
+jobs:
+  reminders:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Apps Script reminder run
+        run: |
+          curl -sS -X POST "$APPS_SCRIPT_URL" \
+            -H "Content-Type: application/json" \
+            -d "{\"action\":\"reminders_run\",\"cronKey\":\"$APPS_SCRIPT_CRON_KEY\",\"clientKey\":\"$APPS_SCRIPT_CLIENT_KEY\"}"
+        env:
+          APPS_SCRIPT_URL: ${{ secrets.APPS_SCRIPT_URL }}
+          APPS_SCRIPT_CRON_KEY: ${{ secrets.APPS_SCRIPT_CRON_KEY }}
+          APPS_SCRIPT_CLIENT_KEY: ${{ secrets.APPS_SCRIPT_CLIENT_KEY }}

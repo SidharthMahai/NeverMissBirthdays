@@ -130,6 +130,14 @@ button:hover {
   box-shadow: 0 10px 22px rgba(255, 95, 131, 0.28);
 }
 
+button:disabled {
+  cursor: not-allowed;
+  transform: none;
+  filter: grayscale(0.15);
+  opacity: 0.72;
+  box-shadow: none;
+}
+
 button.ghost {
   background: #fff;
   color: #3f3559;
@@ -170,6 +178,27 @@ button.danger {
   padding: 0.35rem 0.7rem;
   border-radius: 999px;
   font-size: 0.85rem;
+}
+
+.toast {
+  margin: 0 0 1rem;
+  padding: 0.7rem 0.85rem;
+  border-radius: 12px;
+  border: 1px solid transparent;
+  font-size: 0.92rem;
+  animation: riseIn 220ms ease-out;
+}
+
+.toast.success {
+  background: #effbf2;
+  color: #226c3f;
+  border-color: #bdeccc;
+}
+
+.toast.error {
+  background: #fff1f4;
+  color: #9e2f50;
+  border-color: #f7bfd0;
 }
 
 .stat-grid {
@@ -328,6 +357,10 @@ button.danger {
   color: #685b80;
 }
 
+.reminder-banner {
+  margin-bottom: 0.9rem;
+}
+
 .modal-backdrop {
   position: fixed;
   inset: 0;
@@ -353,6 +386,11 @@ button.danger {
   display: flex;
   justify-content: space-between;
   align-items: center;
+}
+
+.settings-copy {
+  color: #6f6387;
+  margin-top: -0.2rem;
 }
 
 .inline-options {
@@ -381,6 +419,11 @@ fieldset {
 .actions-row {
   display: flex;
   justify-content: flex-end;
+}
+
+.saving-hint {
+  color: #7b6d90;
+  font-size: 0.86rem;
 }
 
 .app-shell::before,

@@ -20,11 +20,15 @@ export default async function handler(req, res) {
     return json(res, 405, { error: 'Method not allowed' });
   }
 
-  const { action, userId, id, input } = req.body || {};
+  const { action, userId, id, input, settings, cronKey } = req.body || {};
   if (!action || typeof action !== 'string') {
     return json(res, 400, { error: 'Missing action' });
   }
-  if (typeof userId !== 'string' || userId.trim().length < 6 || userId.trim().length > 80) {
+  const requiresUserId = action !== 'reminders_run';
+  if (
+    requiresUserId &&
+    (typeof userId !== 'string' || userId.trim().length < 6 || userId.trim().length > 80)
+  ) {
     return json(res, 400, { error: 'Invalid access ID. Use 6-80 characters.' });
   }
 
@@ -34,9 +38,11 @@ export default async function handler(req, res) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         action,
-        userId: userId.trim(),
+        ...(requiresUserId ? { userId: userId.trim() } : {}),
         ...(id ? { id } : {}),
         ...(input ? { input } : {}),
+        ...(settings ? { settings } : {}),
+        ...(cronKey ? { cronKey } : {}),
         ...(APPS_SCRIPT_CLIENT_KEY ? { clientKey: APPS_SCRIPT_CLIENT_KEY } : {}),
       }),
     });

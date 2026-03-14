@@ -1,4 +1,4 @@
-import { BirthdayInput, BirthdayRecord } from '../types/birthday';
+import { BirthdayInput, BirthdayRecord, ReminderSettings } from '../types/birthday';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL?.trim().replace(/\/$/, '') || '';
 const API_BIRTHDAYS_URL = `${API_BASE}/api/birthdays`;
@@ -64,5 +64,28 @@ export const birthdayStore = {
 
   async remove(userId: string, id: string) {
     await request<{ ok: true }>({ action: 'delete', userId, id });
+  },
+
+  async getReminderSettings(userId: string) {
+    const data = await request<{ settings: ReminderSettings }>({ action: 'settings_get', userId });
+    const settings = data.settings;
+    return {
+      userId,
+      reminderEnabled: Boolean(settings?.reminderEnabled),
+      reminderEmail: settings?.reminderEmail,
+      updatedAt: settings?.updatedAt,
+    };
+  },
+
+  async updateReminderSettings(
+    userId: string,
+    settings: Pick<ReminderSettings, 'reminderEnabled' | 'reminderEmail'>,
+  ) {
+    const data = await request<{ settings: ReminderSettings }>({
+      action: 'settings_update',
+      userId,
+      settings,
+    });
+    return data.settings;
   },
 };
