@@ -19,9 +19,9 @@ jobs:
             -H "Content-Type: application/json" \
             -d "$PAYLOAD"
 
-          STATUS=$(awk 'toupper($1) ~ /^HTTP\\// {code=$2} END {print code}' "$HEADERS_FILE")
+          STATUS=$(head -n 1 "$HEADERS_FILE" | sed -E 's/HTTP\\/[^ ]+ ([0-9]+).*/\\1/')
           if [ "$STATUS" = "301" ] || [ "$STATUS" = "302" ] || [ "$STATUS" = "303" ] || [ "$STATUS" = "307" ] || [ "$STATUS" = "308" ]; then
-            LOCATION=$(awk 'tolower($1)=="location:" {print $2}' "$HEADERS_FILE" | tr -d '\\r' | tail -1)
+            LOCATION=$(grep -i '^location:' "$HEADERS_FILE" | tail -1 | sed -E 's/[Ll]ocation:[[:space:]]*//' | tr -d '\r')
             RESPONSE=$(curl -fsSL "$LOCATION")
           elif [ "$STATUS" = "200" ]; then
             RESPONSE=$(cat "$BODY_FILE")
