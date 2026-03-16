@@ -1,5 +1,6 @@
 import { FormEvent, useMemo, useState } from 'react';
 import { BirthdayInput, BirthdayRecord, Relation } from '../types/birthday';
+import { MONTH_NAMES } from '../utils/date';
 
 interface BirthdayFormModalProps {
   record?: BirthdayRecord;
@@ -139,9 +140,9 @@ export const BirthdayFormModal = ({ record, onClose, onSave, isSubmitting = fals
                 }}
                 disabled={isSubmitting}
               >
-                {Array.from({ length: 12 }).map((_, index) => (
-                  <option key={index + 1} value={index + 1}>
-                    {index + 1}
+                {MONTH_NAMES.map((label, index) => (
+                  <option key={label} value={index + 1}>
+                    {label}
                   </option>
                 ))}
               </select>
